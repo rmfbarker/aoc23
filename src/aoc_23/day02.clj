@@ -8,6 +8,7 @@
 
 (defn read-file [f] (str/split-lines (slurp (io/resource f))))
 
+
 "12 red cubes, 13 green cubes, and 14 blue cubes"
 (def cube-limits {"red" 12 "green" 13 "blue" 14})
 
@@ -16,6 +17,7 @@
                                game-line))
 
 (def test-games (map parse-game (read-file sample-file)))
+(def input-games (map parse-game (read-file input-file)))
 
 (defn game-ok? [test-game]
   (reduce
@@ -42,3 +44,23 @@
 
 (calculate-id-total sample-file)
 (calculate-id-total input-file)
+
+
+(defn game-power [game-line]
+  (reduce * (map
+              (fn [by-colour] (apply max
+                                     (map
+                                       #(Integer/parseInt (first (str/split % #" ")))
+                                       by-colour)))
+              (vals (group-by
+                      (fn [s] (second (str/split s #" ")))
+                      game-line)))))
+
+;; Part 2
+
+;; sample => 2286
+(reduce + (map game-power test-games))
+
+;; part 2 => 71274
+(reduce + (map game-power input-games))
+
