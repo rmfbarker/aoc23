@@ -8,7 +8,6 @@
 
 (defn read-file [f] (str/split-lines (slurp (io/resource f))))
 
-
 "12 red cubes, 13 green cubes, and 14 blue cubes"
 (def cube-limits {"red" 12 "green" 13 "blue" 14})
 
