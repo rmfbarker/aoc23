@@ -6,6 +6,9 @@
 (defn get-digits [s]
   (re-seq #"\d+" s))
 
+(defn contains-symbol? [s]
+  (re-seq #"[^a-zA-Z\d\s\.]" s))
+
 (def sample-file "sample-03.txt")
 (def input-file "input-03")
 
@@ -53,7 +56,19 @@
       (recur (+ 1 idx pointer) (conj acc idx))
       acc)))
 
-(defn check-row-before [indexed-lines row col digit])
+(defn touching-symbol-in-row-before? [indexed-lines row col digit]
+  (let [[_ line-before] (nth indexed-lines (dec row))
+        start (max 0 (dec col))
+        end (min (inc (count line-before))
+                 (+ 3 (count digit)))
+        interest (subs line-before start end)]
+    (println "line before" line-before "digit length" (count digit))
+    (println "part we are interested in" interest)
+    (not (empty? (contains-symbol? interest)))))
+
+
+
+
 
 
 (deftest part1-tests
@@ -71,12 +86,15 @@
         [row line] (nth indexed-file 2)
         digits       (get-digits line)
         digit        (first digits)
-        idxs         (indexes-of line digit)]
+        idxs         (indexes-of line digit)
+        touches-symbol (touching-symbol-in-row-before? indexed-file row (first idxs) digit)]
+    (println line digits idxs touches-symbol)
     ;; look at the row before this line and check if there is a symbol touching the number
-    (check-row-before indexed-file row (first idxs) digit))
+
+    (is (true? touches-symbol))))
 
 
-  (is (true? (check-row-before (read-file sample-file) 2 2 "35"))))
+
 
 ;; get the series of indexes that i need to check for a symbol.
 
