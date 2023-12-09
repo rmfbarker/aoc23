@@ -11,3 +11,15 @@ pom.xml.asc
 /.prepl-port
 .hgignore
 .hg/
+/.idea/.name
+/aoc-23.iml
+/.idea/ClojureProjectResolveSettings.xml
+/.idea/compiler.xml
+/.idea/libraries/Leiningen__nrepl_1_0_0.xml
+/.idea/libraries/Leiningen__org_clojure_clojure_1_11_1.xml
+/.idea/libraries/Leiningen__org_clojure_core_specs_alpha_0_2_62.xml
+/.idea/libraries/Leiningen__org_clojure_spec_alpha_0_3_218.xml
+/.idea/libraries/Leiningen__org_nrepl_incomplete_0_1_0.xml
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/vcs.xml
