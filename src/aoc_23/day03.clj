@@ -3,8 +3,10 @@
             [clojure.test :refer :all]
             [clojure.string :as str]))
 
-(defn get-digits [s]
-  (re-seq #"\d+" s))
+(defn get-digits
+  "A distinct list of numbers appearing in a line, in order or occurrence"
+  [s]
+  (distinct (re-seq #"\d+" s)))
 
 (defn contains-symbol? [s]
   (re-seq #"[^a-zA-Z\d\s\.]" s))
@@ -27,7 +29,6 @@
 (defn parse-row [row-line]
   (let [[row line] row-line
         numbers (get-digits line)]
-    (println numbers)
     (reduce
       (fn [acc n]
         (let [idx (str/index-of line n)]
@@ -57,17 +58,16 @@
       acc)))
 
 (defn touching-symbol-in-row-x? [f-get-row indexed-lines row col digit]
-  (let [row-n (f-get-row row)]
-    (println "about to check row-n" row-n "row count is" (count indexed-lines))
-    (if (< -1 row-n (count indexed-lines))
-      (let [[_ line-of-interest] (nth indexed-lines row-n)
-            start    (max 0 (dec col))
-            end      (min (inc (count line-of-interest))
-                          (+ start 1 (count digit)))
-            interest (subs line-of-interest start end)]
-        (println "line of interest" line-of-interest "digit length" (count digit) "piece of interest" interest)
+  (boolean
+    (let [row-n (f-get-row row)]
+     (if (< -1 row-n (count indexed-lines))
+       (let [[_ line-of-interest] (nth indexed-lines row-n)
+             start    (max 0 (dec col))
+             end      (min (count line-of-interest)
+                           (+ start 2 (count digit)))
+             interest (subs line-of-interest start end)]
 
-        (not (empty? (contains-symbol? interest)))))))
+         (not (empty? (contains-symbol? interest))))))))
 
 (def touching-symbol-in-same-row?
   (partial touching-symbol-in-row-x? identity))
@@ -79,6 +79,7 @@
   (partial touching-symbol-in-row-x? inc))
 
 
+
 (defn check-around?
   "This only checks the first digit in the line and the first occurrence
 
@@ -86,9 +87,8 @@
 
   And called by another function that is processing the digits in a row
   "
-  [file line-y]
-  (let [indexed-file   (create-index (read-file file))
-        [row line] (nth indexed-file line-y)
+  [indexed-file line-y]
+  (let [[row line] (nth indexed-file line-y)
         digits         (get-digits line)
         digit          (first digits)
         idxs           (indexes-of line digit)
@@ -96,13 +96,30 @@
         symbol-row?    (touching-symbol-in-same-row? indexed-file row (first idxs) digit)
         symbol-after?  (touching-symbol-in-row-after? indexed-file row (first idxs) digit)]
 
-    (println line digits idxs symbol-before? symbol-row? symbol-after?)
     ;; look at the row before this line and check if there is a symbol touching the number
 
     [symbol-before? symbol-row? symbol-after?]
     ))
 
+(defn check-around-specific-digit?
+  [indexed-file line-y digit idx]
+  (let [row            line-y
+        symbol-before? (touching-symbol-in-row-before? indexed-file row idx digit)
+        symbol-row?    (touching-symbol-in-same-row? indexed-file row idx digit)
+        symbol-after?  (touching-symbol-in-row-after? indexed-file row idx digit)]
 
+    ;; look at the row before this line and check if there is a symbol touching the number
+
+    [symbol-before? symbol-row? symbol-after?]
+    ))
+
+(defn test-row [indexed-file row assertions]
+  (let [[assert-previous assert-current assert-next] assertions
+        [result-previous result-current result-next] (check-around? indexed-file row)]
+
+    (is (= assert-previous result-previous))
+    (is (= assert-current result-current))
+    (is (= assert-next result-next))))
 
 (deftest part1-tests
   (is (= [0 5] (indexes-of
@@ -115,34 +132,15 @@
                  "346346...*.....475.440....903&..996*...404+.395...*..............*.......&253.223.....................453..535......@....265.....290$........"
                  "346")))
 
-  (let [row 0
-        [symbol-prior-row
-         symbol-in-row
-         symbol-subs-row] (check-around? sample-file row)]
-    (is ((complement true?) symbol-prior-row))
-    (is (false? symbol-in-row))
-    (is (true? symbol-subs-row)))
-
-  (let [[touches-symbol
-         touches-before
-         touches-symbol-after] (check-around? sample-file 2)]
-    (is (true? touches-symbol))
-    (is (false? touches-before))
-    (is (false? touches-symbol-after)))
-
-  (let [[touches-symbol
-         touches-symbol-row
-         touches-symbol-after] (check-around? sample-file 7)]
-    (is (false? touches-symbol))
-    (is (false? touches-symbol-row))
-    (is (true? touches-symbol-after)))
-
-  (let [[symbol-before?
-         symbol-row?
-         symbol-after?] (check-around? sample-file 4)]
-    (is (false? symbol-before?))
-    (is (true? symbol-row?))
-    (is (false? symbol-after?))))
+  (testing "symbols around digits"
+    (let [indexed-file (create-index (read-file sample-file))]
+      (test-row indexed-file 0 [false false true])
+      (test-row indexed-file 2 [true false false])
+      (test-row indexed-file 4 [false true false])
+      (test-row indexed-file 6 [true false false])
+      (test-row indexed-file 7 [false false true])
+      ))
+  )
 
 ;; get the series of indexes that i need to check for a symbol.
 
@@ -151,13 +149,19 @@
   (let [indexed-file (create-index (read-file file-name))]
     (doseq [line indexed-file]
       (let [[row data] line
-            digits (get-digits data)]
+            digits (get-digits data)
+            ]
         (doseq [digit digits
                 idx   (indexes-of data digit)]
-          (println "row" row "col" idx "digit" digit (check-around? file-name row)))))))
+          (println "row" row "col" idx "digit" digit (check-around-specific-digit? indexed-file row digit idx))
+          (if (some identity (check-around-specific-digit? indexed-file row digit idx))
+            (println digit)
+            ))))))
 
 (defn -main [& args]
-  (sum-numbers sample-file))
+  ;(sum-numbers sample-file)
+  (sum-numbers input-file)
+  )
 
 
 ;; test lines with duplicate numbers
