@@ -3,6 +3,13 @@
             [clojure.test :refer :all]
             [clojure.string :as str]))
 
+(defn re-pos [re s]
+  (loop [m   (re-matcher re s)
+         res []]
+    (if (.find m)
+      (recur m (conj res [(.start m) (.group m)]))
+      res)))
+
 (defn get-digits
   "A distinct list of numbers appearing in a line, in order or occurrence"
   [s]
@@ -60,14 +67,14 @@
 (defn touching-symbol-in-row-x? [f-get-row indexed-lines row col digit]
   (boolean
     (let [row-n (f-get-row row)]
-     (if (< -1 row-n (count indexed-lines))
-       (let [[_ line-of-interest] (nth indexed-lines row-n)
-             start    (max 0 (dec col))
-             end      (min (count line-of-interest)
-                           (+ start 2 (count digit)))
-             interest (subs line-of-interest start end)]
+      (if (< -1 row-n (count indexed-lines))
+        (let [[_ line-of-interest] (nth indexed-lines row-n)
+              start    (max 0 (dec col))
+              end      (min (count line-of-interest)
+                            (+ start 2 (count digit)))
+              interest (subs line-of-interest start end)]
 
-         (not (empty? (contains-symbol? interest))))))))
+          (not (empty? (contains-symbol? interest))))))))
 
 (def touching-symbol-in-same-row?
   (partial touching-symbol-in-row-x? identity))
@@ -149,11 +156,10 @@
   (let [indexed-file (create-index (read-file file-name))]
     (doseq [line indexed-file]
       (let [[row data] line
-            digits (get-digits data)
+            digits (re-pos #"\d+" data)
             ]
-        (doseq [digit digits
-                idx   (indexes-of data digit)]
-          (println "row" row "col" idx "digit" digit (check-around-specific-digit? indexed-file row digit idx))
+        (doseq [[idx digit] digits]
+          ;(println "row" row "col" idx "digit" digit (check-around-specific-digit? indexed-file row digit idx))
           (if (some identity (check-around-specific-digit? indexed-file row digit idx))
             (println digit)
             ))))))
