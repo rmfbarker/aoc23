@@ -7,10 +7,12 @@
   (loop [m   (re-matcher re s)
          res {}]
     (if (.find m)
-      (recur m (assoc res (.start m) (.group m)))
+      (recur m (assoc res [(.start m) (.end m)] (.group m)))
       res)))
 
 (defn digit-index [data] (re-pos #"\d+" data))
+
+(defn asterisk-indexes [data] (keys (re-pos #"\*" data)))
 
 (defn contains-symbol? [s]
   (re-seq #"[^a-zA-Z\d\s\.]" s))
@@ -59,18 +61,38 @@
     [symbol-before? symbol-row? symbol-after?]
     ))
 
-(defn test-row [indexed-file row digit-n assertions]
+(defn test-row
+  "Used for testing purposes only.  Convenience method." [indexed-file row digit-n assertions]
   (let [[assert-previous assert-current assert-next] assertions
         line      (nth indexed-file row)
         [row data] line
         digit-idx (digit-index data)
-        [idx dig] (nth (seq digit-idx) digit-n)
+        [[idx] dig] (nth (seq digit-idx) digit-n)
         [result-previous result-current result-next] (check-around-specific-digit? indexed-file row dig idx)]
 
     (is (= assert-previous result-previous))
     (is (= assert-current result-current))
     (is (= assert-next result-next))))
 
+(defn sum-line [indexed-file row-n]
+  (let [line (nth indexed-file row-n)
+        [row data] line]
+    (reduce (fn [acc [[idx _] dig]]
+              (if (some true? (check-around-specific-digit? indexed-file row dig idx))
+                (+ acc (Integer/parseInt dig))
+                acc))
+            0
+            (digit-index data))))
+
+
+(defn sum-numbers [file-name]
+  (let [indexed-file (create-index (read-file file-name))]
+    (reduce (fn [acc row-n]
+              (+ acc (sum-line indexed-file row-n)))
+            0
+            (range (count indexed-file)))))
+
+;; for each line, get the list of numbers, get their indexes, look around those numbers for a symbol, keep numbers that are touching a symbol. sum those numbers that match that filter.
 (deftest part1-tests
   (testing "symbols around digits"
     (let [indexed-file (create-index (read-file sample-file))]
@@ -81,25 +103,11 @@
       (test-row indexed-file 6 0 [true false false])
       (test-row indexed-file 7 0 [false false true])
       ))
+
+  (testing "overall result"
+    (is (= 498559 (sum-numbers input-file))))
+
   )
-
-(defn sum-line [indexed-file row-n]
-  (let [line (nth indexed-file row-n)
-        [row data] line]
-    (reduce (fn [acc [idx dig]]
-              (if (some true? (check-around-specific-digit? indexed-file row dig idx))
-                (+ acc (Integer/parseInt dig))
-                acc))
-            0
-            (digit-index data))))
-
-;; for each line, get the list of numbers, get their indexes, look around those numbers for a symbol, keep numbers that are touching a symbol. sum those numbers that match that filter.
-(defn sum-numbers [file-name]
-  (let [indexed-file (create-index (read-file file-name))]
-    (reduce (fn [acc row-n]
-              (+ acc (sum-line indexed-file row-n)))
-            0
-            (range (count indexed-file)))))
 
 (defn -main [& args]
   ;(sum-numbers sample-file)
@@ -112,3 +120,40 @@
 ;(group-by identity (get-digits "346..346...*.....475.440....903&..996*...404+.395...*..............*.......&253.223.....................453..535......@....265.....290$........"))
 ;
 ;(parse-row [0 "346..346...*.....475.440....903&..996*...404+.395...*..............*.......&253.223.....................453..535......@....265.....290$........"])
+
+(defn overlaps [])
+
+(defn gear-ratio-sum
+  "Takes a line, finds all asterisks and returns the sum of the gear ratios on that line"
+  [indexed-file row-y]
+  (let [line          (nth indexed-file row-y)
+        digits-before (map vec (digit-index (nth indexed-file (dec row-y))))
+        digits-same   (map vec (digit-index (nth indexed-file row-y)))
+        digits-after  (map vec (digit-index (nth indexed-file (inc row-y))))
+
+        idx           (first (asterisk-indexes line))]
+
+    (println (map second
+                  (filter (fn [[digit-idx digit-value]]
+                        (<= (dec digit-idx) idx (+ (inc digit-idx) (count digit-value))))
+                      (concat digits-after digits-same digits-before))))
+    0
+    ))
+
+(deftest part2-tests
+  (testing "part two"
+    (let [sample-input (read-file sample-file)
+          ]
+
+      (is (= 16345 (gear-ratio-sum sample-input 1)))
+      ;; return out the digits in the row before that contain an adjacent number to the asterisk
+
+      ;(println (digit-index line-before))
+      ;(println (digit-index line-after))
+
+      ;(asterisk-index line)
+      )
+
+    )
+
+  )
