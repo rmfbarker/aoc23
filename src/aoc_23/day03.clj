@@ -109,19 +109,10 @@
 
   )
 
-(defn -main [& args]
+(defn -main [& _]
   ;(sum-numbers sample-file)
   (println (sum-numbers input-file))
   )
-
-
-;; test lines with duplicate numbers
-;(get-digits "346..346...*.....475.440....903&..996*...404+.395...*..............*.......&253.223.....................453..535......@....265.....290$........")
-;(group-by identity (get-digits "346..346...*.....475.440....903&..996*...404+.395...*..............*.......&253.223.....................453..535......@....265.....290$........"))
-;
-;(parse-row [0 "346..346...*.....475.440....903&..996*...404+.395...*..............*.......&253.223.....................453..535......@....265.....290$........"])
-
-(defn overlaps [])
 
 (defn all-digits-surrounding-lines [lines row-y]
   (let [digits-before (map vec (digit-index (nth lines (dec row-y))))
@@ -131,7 +122,7 @@
 
 (defn adjacent-numbers [lines row-y col-x]
   (map second
-       (filter (fn [[[start end] digit]]
+       (filter (fn [[[start end] _]]
                  (<= start (inc col-x) (inc end)))
                (all-digits-surrounding-lines lines row-y)
                ))
