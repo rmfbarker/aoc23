@@ -61,7 +61,7 @@
 
 (defn test-row [indexed-file row digit-n assertions]
   (let [[assert-previous assert-current assert-next] assertions
-        line (nth indexed-file row)
+        line      (nth indexed-file row)
         [row data] line
         digit-idx (digit-index data)
         [idx dig] (nth (seq digit-idx) digit-n)
@@ -83,22 +83,27 @@
       ))
   )
 
-;; get the series of indexes that i need to check for a symbol.
+(defn sum-line [indexed-file row-n]
+  (let [line (nth indexed-file row-n)
+        [row data] line]
+    (reduce (fn [acc [idx dig]]
+              (if (some true? (check-around-specific-digit? indexed-file row dig idx))
+                (+ acc (Integer/parseInt dig))
+                acc))
+            0
+            (digit-index data))))
 
 ;; for each line, get the list of numbers, get their indexes, look around those numbers for a symbol, keep numbers that are touching a symbol. sum those numbers that match that filter.
 (defn sum-numbers [file-name]
   (let [indexed-file (create-index (read-file file-name))]
-    (doseq [line indexed-file]
-      (let [[row data] line
-            digits (digit-index data)]
-        (doseq [[idx digit] digits]
-          (if (some true? (check-around-specific-digit? indexed-file row digit idx))
-            (println digit)
-            ))))))
+    (reduce (fn [acc row-n]
+              (+ acc (sum-line indexed-file row-n)))
+            0
+            (range (count indexed-file)))))
 
 (defn -main [& args]
   ;(sum-numbers sample-file)
-  (sum-numbers input-file)
+  (println (sum-numbers input-file))
   )
 
 
