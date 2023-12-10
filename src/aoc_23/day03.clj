@@ -123,37 +123,82 @@
 
 (defn overlaps [])
 
+(defn all-digits-surrounding-lines [lines row-y]
+  (let [digits-before (map vec (digit-index (nth lines (dec row-y))))
+        digits-same   (map vec (digit-index (nth lines row-y)))
+        digits-after  (map vec (digit-index (nth lines (inc row-y))))]
+    (concat digits-after digits-same digits-before)))
+
+(defn adjacent-numbers [lines row-y col-x]
+  (map second
+       (filter (fn [[[start end] digit]]
+                 (<= start (inc col-x) (inc end)))
+               (all-digits-surrounding-lines lines row-y)
+               ))
+  )
+
+(defn parse-int [i] (Integer/parseInt i))
+
+(defn adjacent-numbers-summed [lines row-y col-x]
+  (reduce * (map parse-int (adjacent-numbers lines row-y col-x)))
+  )
+
+
+(defn gear-ratio-sum-line [lines row-y]
+  (reduce +
+          (map
+            (fn [ast] (adjacent-numbers-summed lines row-y (first ast)))
+
+            (filter
+              (fn [x]
+                (= 2 (count (adjacent-numbers lines row-y (first x)))))
+              (asterisk-indexes (nth lines row-y)))))
+  )
+
 (defn gear-ratio-sum
   "Takes a line, finds all asterisks and returns the sum of the gear ratios on that line"
-  [indexed-file row-y]
-  (let [line          (nth indexed-file row-y)
-        digits-before (map vec (digit-index (nth indexed-file (dec row-y))))
-        digits-same   (map vec (digit-index (nth indexed-file row-y)))
-        digits-after  (map vec (digit-index (nth indexed-file (inc row-y))))
-
-        idx           (first (asterisk-indexes line))]
-
-    (println (map second
-                  (filter (fn [[digit-idx digit-value]]
-                        (<= (dec digit-idx) idx (+ (inc digit-idx) (count digit-value))))
-                      (concat digits-after digits-same digits-before))))
-    0
-    ))
+  [lines]
+  (reduce + (map (partial gear-ratio-sum-line lines) (range (count lines)))))
 
 (deftest part2-tests
+
+
   (testing "part two"
-    (let [sample-input (read-file sample-file)
-          ]
 
-      (is (= 16345 (gear-ratio-sum sample-input 1)))
-      ;; return out the digits in the row before that contain an adjacent number to the asterisk
+    (let [sample-input (read-file sample-file)          ]
 
-      ;(println (digit-index line-before))
-      ;(println (digit-index line-after))
+      (testing "asterisk indexes"
 
-      ;(asterisk-index line)
-      )
+        (is (= [[5 6]] (asterisk-indexes (nth sample-input 8))))    ; => [[5 6]]
 
-    )
+        (is (= 3 (first (first (asterisk-indexes (nth sample-input 1)))))) ; => 3
+        (is (= 3 (first (first (asterisk-indexes (nth sample-input 4)))))) ; => 3
+        (is (= 5 (first (first (asterisk-indexes (nth sample-input 8)))))) ; => 5
+        )
 
-  )
+      (is (= (set (adjacent-numbers sample-input 1 3))
+             #{"467" "35"}))
+
+      (is (= (set (adjacent-numbers sample-input 4 3))
+             #{"617"}))
+
+      (is (= (set (adjacent-numbers sample-input 8 5))
+             #{"755" "598"}))
+
+      (is (= (adjacent-numbers-summed sample-input 1 3)
+             16345))
+
+      (is (= (adjacent-numbers-summed sample-input 8 5)
+             451490))
+
+      (is (= (gear-ratio-sum-line sample-input 1)
+             16345)
+          "Calculate the sum of the gear ratios for line 1")
+
+      (is (= 467835 (gear-ratio-sum sample-input))
+          "Calculate the gear ratio sum for the input sample, for all lines")
+
+      (is (= 72246648 (gear-ratio-sum (read-file input-file)))
+          "Calculate the answer for day 3 part 2; the gear ratio sum for the input, for all lines")
+
+      )))
